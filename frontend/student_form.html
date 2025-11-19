@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Form</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <style>
+    body {
+      background-color: #f5f7fb;
+      font-family: Arial, sans-serif;
+    }
+    .card-shadow {
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      border: none;
+      border-radius: 1rem;
+    }
+    .section-title {
+      font-weight: 600;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">Student DB</a>
+    <span class="navbar-text text-white ms-3" id="formTitle">
+      New Student
+    </span>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <div class="card card-shadow">
+    <div class="card-body">
+
+      <div id="alertBox" class="alert d-none" role="alert">
+        <span id="alertMessage"></span>
+        <button type="button" class="btn-close float-end" aria-label="Close" id="alertCloseBtn"></button>
+      </div>
+
+      <form id="studentForm">
+        <!-- BASIC INFO -->
+        <h5 class="section-title">Basic Information</h5>
+        <div class="row g-3 mt-1">
+          <div class="col-md-4">
+            <label class="form-label">Name</label>
+            <input type="text" id="name" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Roll No</label>
+            <input type="text" id="rollNo" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Department</label>
+            <input type="text" id="department" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Date of Birth</label>
+            <input type="date" id="dob" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Email</label>
+            <input type="email" id="email" class="form-control" required>
+          </div>
+        </div>
+
+        <!-- EXAMS -->
+        <h5 class="section-title">Exam Results</h5>
+        <div class="table-responsive mt-1">
+          <table class="table table-sm align-middle" id="examsTable">
+            <thead>
+            <tr>
+              <th>Semester</th>
+              <th>Exam Name</th>
+              <th>Subject</th>
+              <th>Marks</th>
+              <th>Max Marks</th>
+              <th>Exam Date</th>
+              <th></th>
+            </tr>
+            </thead>
+            <tbody id="examsBody">
+            <!-- rows via JS -->
+            </tbody>
+          </table>
+        </div>
+        <button type="button" id="addExamRow" class="btn btn-outline-primary btn-sm">
+          + Add Exam
+        </button>
+
+        <!-- FEES -->
+        <h5 class="section-title">Fees</h5>
+        <div class="table-responsive mt-1">
+          <table class="table table-sm align-middle" id="feesTable">
+            <thead>
+            <tr>
+              <th>Term / Semester</th>
+              <th>Amount</th>
+              <th>Due Date</th>
+              <th>Paid?</th>
+              <th></th>
+            </tr>
+            </thead>
+            <tbody id="feesBody">
+            <!-- rows via JS -->
+            </tbody>
+          </table>
+        </div>
+        <button type="button" id="addFeeRow" class="btn btn-outline-primary btn-sm">
+          + Add Fee
+        </button>
+
+        <hr class="my-4">
+
+        <div class="d-flex justify-content-between">
+          <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-success" id="saveBtn">Save</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const API_BASE = `http://${window.location.hostname}:8080`;
+
+  function getQueryParam(name) {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
+  }
+
+  function showAlert(type, message) {
+    const box = document.getElementById("alertBox");
+    const msg = document.getElementById("alertMessage");
+    box.className = "alert alert-" + type;
+    msg.textContent = message;
+    box.classList.remove("d-none");
+  }
+  function hideAlert() {
+    document.getElementById("alertBox").classList.add("d-none");
+  }
+
+  function addExamRow(exam = {}) {
+    const tbody = document.getElementById("examsBody");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" class="form-control form-control-sm sem" value="${exam.semester || ""}"></td>
+      <td><input type="text" class="form-control form-control-sm examName" value="${exam.examName || ""}"></td>
+      <td><input type="text" class="form-control form-control-sm subject" value="${exam.subject || ""}"></td>
+      <td><input type="number" class="form-control form-control-sm marks" value="${exam.marksObtained ?? ""}"></td>
+      <td><input type="number" class="form-control form-control-sm maxMarks" value="${exam.maxMarks ?? ""}"></td>
+      <td><input type="date" class="form-control form-control-sm examDate" value="${exam.examDate || ""}"></td>
+      <td>
+        <button type="button" class="btn btn-sm btn-outline-danger remove-exam">X</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelector(".remove-exam").addEventListener("click", () => tr.remove());
+  }
+
+  function addFeeRow(fee = {}) {
+    const tbody = document.getElementById("feesBody");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" class="form-control form-control-sm term" value="${fee.term || ""}"></td>
+      <td><input type="number" class="form-control form-control-sm amount" value="${fee.amount ?? ""}"></td>
+      <td><input type="date" class="form-control form-control-sm dueDate" value="${fee.dueDate || ""}"></td>
+      <td class="text-center">
+        <input type="checkbox" class="form-check-input paid" ${fee.paid ? "checked" : ""}>
+      </td>
+      <td>
+        <button type="button" class="btn btn-sm btn-outline-danger remove-fee">X</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelector(".remove-fee").addEventListener("click", () => tr.remove());
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    hideAlert();
+
+    const mode = getQueryParam("mode") || "add";
+    const id = getQueryParam("id");
+    const formTitle = document.getElementById("formTitle");
+    const authHeader = sessionStorage.getItem("authHeader");
+
+    if (!authHeader) {
+      alert("Please login as admin first.");
+      window.location.href = "index.html";
+      return;
+    }
+
+    if (mode === "edit" && id) {
+      formTitle.textContent = "Edit Student #" + id;
+      await loadStudentFull(id, authHeader);
+    } else {
+      formTitle.textContent = "Add New Student";
+      addExamRow();  // one empty row
+      addFeeRow();
+    }
+
+    document.getElementById("addExamRow").addEventListener("click", () => addExamRow());
+    document.getElementById("addFeeRow").addEventListener("click", () => addFeeRow());
+
+    document.getElementById("cancelBtn").addEventListener("click", () => {
+      window.location.href = "index.html";
+    });
+
+    document.getElementById("alertCloseBtn").addEventListener("click", hideAlert);
+
+    document.getElementById("studentForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlert();
+      await saveStudentFull(mode, id, authHeader);
+    });
+  });
+
+  async function loadStudentFull(id, authHeader) {
+    try {
+      const resp = await fetch(`${API_BASE}/api/students/${id}/full`, {
+        headers: { "Authorization": authHeader }
+      });
+      if (!resp.ok) {
+        showAlert("danger", "Failed to load student data (" + resp.status + ")");
+        return;
+      }
+      const data = await resp.json(); // { id, name, email, rollNo, department, dob, exams, fees }
+
+      document.getElementById("name").value = data.name || "";
+      document.getElementById("rollNo").value = data.rollNo || "";
+      document.getElementById("department").value = data.department || "";
+      document.getElementById("dob").value = data.dob || "";
+      document.getElementById("email").value = data.email || "";
+
+      // exams
+      document.getElementById("examsBody").innerHTML = "";
+      (data.exams || []).forEach(ex => addExamRow(ex));
+      if (!data.exams || !data.exams.length) addExamRow();
+
+      // fees
+      document.getElementById("feesBody").innerHTML = "";
+      (data.fees || []).forEach(f => addFeeRow(f));
+      if (!data.fees || !data.fees.length) addFeeRow();
+
+    } catch (err) {
+      console.error(err);
+      showAlert("danger", "Error loading student.");
+    }
+  }
+
+  async function saveStudentFull(mode, id, authHeader) {
+    const body = {
+      name: document.getElementById("name").value.trim(),
+      rollNo: document.getElementById("rollNo").value.trim(),
+      department: document.getElementById("department").value.trim(),
+      dob: document.getElementById("dob").value || null,
+      email: document.getElementById("email").value.trim(),
+      exams: [],
+      fees: []
+    };
+
+    // collect exams
+    document.querySelectorAll("#examsBody tr").forEach(tr => {
+      const sem = tr.querySelector(".sem").value.trim();
+      const examName = tr.querySelector(".examName").value.trim();
+      const subject = tr.querySelector(".subject").value.trim();
+      const marks = tr.querySelector(".marks").value;
+      const maxMarks = tr.querySelector(".maxMarks").value;
+      const examDate = tr.querySelector(".examDate").value;
+
+      if (!sem && !examName && !subject && !marks && !maxMarks && !examDate) {
+        return; // skip empty row
+      }
+
+      body.exams.push({
+        semester: sem,
+        examName,
+        subject,
+        marksObtained: marks ? parseInt(marks, 10) : 0,
+        maxMarks: maxMarks ? parseInt(maxMarks, 10) : 0,
+        examDate: examDate || null
+      });
+    });
+
+    // collect fees
+    document.querySelectorAll("#feesBody tr").forEach(tr => {
+      const term = tr.querySelector(".term").value.trim();
+      const amount = tr.querySelector(".amount").value;
+      const dueDate = tr.querySelector(".dueDate").value;
+      const paid = tr.querySelector(".paid").checked;
+
+      if (!term && !amount && !dueDate && !paid) {
+        return;
+      }
+
+      body.fees.push({
+        term,
+        amount: amount ? parseFloat(amount) : 0,
+        dueDate: dueDate || null,
+        paid
+      });
+    });
+
+    try {
+      const url = mode === "edit"
+        ? `${API_BASE}/api/students/${id}/full`
+        : `${API_BASE}/api/students/full`;
+
+      const method = mode === "edit" ? "PUT" : "POST";
+
+      const resp = await fetch(url, {
+        method,
+        headers: {
+          "Authorization": authHeader,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!resp.ok) {
+        showAlert("danger", `Failed to save student (${resp.status}).`);
+        return;
+      }
+
+      showAlert("success", "Student saved successfully.");
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 800);
+
+    } catch (err) {
+      console.error(err);
+      showAlert("danger", "Error saving student.");
+    }
+  }
+</script>
+</body>
+</html>

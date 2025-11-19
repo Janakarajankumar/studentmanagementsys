@@ -1,0 +1,11 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+table td, table th {
+    vertical-align: middle;
+}
+
+#loginSection {
+    margin-top: 40px;
+}

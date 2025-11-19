@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Exam Results</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <style>
+    body {
+      background-color: #f5f7fb;
+      font-family: Arial, sans-serif;
+    }
+    .card-shadow {
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      border: none;
+      border-radius: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">Student DB</a>
+    <span class="navbar-text text-white" id="examNavTitle">
+      Exam Results
+    </span>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <div class="card card-shadow">
+    <div class="card-body">
+      <h4 id="studentHeading" class="mb-3">Exam Results</h4>
+
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+          <tr>
+            <th>Semester</th>
+            <th>Subject</th>
+            <th>Marks</th>
+            <th>Max Marks</th>
+            <th>Exam Date</th>
+          </tr>
+          </thead>
+          <tbody id="examTableBody">
+          <!-- filled by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <button class="btn btn-secondary mt-3" onclick="goBack()">Back to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const API_BASE = `http://${window.location.hostname}:8080`;
+
+  function getQueryParam(name) {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
+  }
+
+  function goBack() {
+    window.location.href = "index.html";
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const studentId = getQueryParam("studentId");
+    const studentName = decodeURIComponent(getQueryParam("name") || "");
+
+    const heading = document.getElementById("studentHeading");
+    heading.textContent = `Exam Results - ${studentName} (ID: ${studentId})`;
+
+    const authHeader = sessionStorage.getItem("authHeader");
+    if (!studentId || !authHeader) {
+      alert("Missing student or authentication. Please login again.");
+      window.location.href = "index.html";
+      return;
+    }
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/students/${studentId}/exams`, {
+        headers: { "Authorization": authHeader }
+      });
+
+      if (!resp.ok) {
+        alert("Failed to load exam results (" + resp.status + ")");
+        return;
+      }
+
+      let exams = await resp.json();
+
+      // sort by semester then date
+      exams.sort((a, b) => {
+        const semA = (a.semester || "").localeCompare(a.semester || "");
+        if (semA !== 0) return semA;
+        const dateA = new Date(a.examDate);
+        const dateB = new Date(b.examDate);
+        return dateA - dateB;
+      });
+
+      const tbody = document.getElementById("examTableBody");
+      tbody.innerHTML = "";
+
+      if (!exams.length) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="5" class="text-center text-muted">No exam records found.</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+
+      exams.forEach(ex => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${ex.semester ?? ""}</td>
+          <td>${ex.subject ?? ""}</td>
+          <td>${ex.marksObtained}</td>
+          <td>${ex.maxMarks}</td>
+          <td>${ex.examDate}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+    } catch (err) {
+      console.error(err);
+      alert("Error loading exam results.");
+    }
+  });
+</script>
+</body>
+</html>
