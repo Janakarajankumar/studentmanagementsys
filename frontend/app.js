@@ -461,21 +461,32 @@ async function deleteStudent(id) {
       headers: { "Authorization": authHeader }
     });
 
-    console.log("DELETE /api/students/" + id, resp.status);
+    console.log("DELETE /api/students/" + id, "status =", resp.status);
 
     if (!resp.ok) {
-      showAlert("danger", `Failed to delete student (status ${resp.status}).`);
+      // try to read error body (if any)
+      let text = "";
+      try { text = await resp.text(); } catch (e) {}
+      showAlert("danger",
+        `Failed to delete student (${resp.status}). ${text || ""}`);
       return;
     }
 
     showAlert("success", "Student deleted.");
-    await loadStudents();
+    await loadStudents();   // refresh table
   } catch (err) {
     console.error("deleteStudent error", err);
-    showAlert("danger", "Error while deleting student.");
+    showAlert("danger", "Error connecting to server while deleting.");
   }
 }
 
+// ---------- Exams / Fees / Details ----------
+
+function showExams(student) {
+  // redirect to the separate exam_results page
+  const url = `exam_results.html?studentId=${student.id}&name=${encodeURIComponent(student.name)}`;
+  window.location.href = url;
+}
 
 async function showFees(student) {
   try {
